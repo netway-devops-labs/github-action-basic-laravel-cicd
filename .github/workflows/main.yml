@@ -1,0 +1,64 @@
+name: Publish
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  laravel-tests:
+    runs-on: ubuntu-latest
+    container:
+      image: kirschbaumdevelopment/laravel-test-runner:7.3
+
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: homestead
+          MYSQL_USER: homestead
+          MYSQL_PASSWORD: secret
+        ports:
+          - 33306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - uses: actions/checkout@v1
+        with:
+          submodules: true
+      - name: Prepare The Environment
+        run: cp .env.ci .env
+      - name: Install Composer Dependencies
+        run: composer install --prefer-source
+      - name: Run artisan
+        run: |
+          php artisan key:generate
+          php artisan migrate
+          php artisan db:seed
+          php artisan vendor:publish --tag public --force
+      - name: Run Laravel Server
+        run: php -S 127.0.0.1:8000 -t public/ &
+      # TEST
+      - name: Run Unit and Feature Tests
+        env:
+          APP_URL: "http://127.0.0.1:8000"
+        run: vendor/bin/phpunit
+
+      # DEPLOY
+      - name: Deploy app
+        uses: SamKirkland/FTP-Deploy-Action@3.0.0
+        with:
+          ftp-server: ${{ secrets.FTP_SERVER }}/
+          ftp-username: ${{ secrets.FTP_USER }}
+          ftp-password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./
+
+      - name: Deploy public
+        uses: SamKirkland/FTP-Deploy-Action@3.0.0
+        with:
+          ftp-server: ${{ secrets.FTP_SERVER }}/public_html/
+          ftp-username: ${{ secrets.FTP_USER }}
+          ftp-password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: public/
