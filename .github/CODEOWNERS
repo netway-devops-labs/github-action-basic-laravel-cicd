@@ -4,4 +4,7 @@
 *.js @netway-devops-labs/backend
 *.php @netway-devops-labs/frontend
 *.tpl @netway-devops-labs/ui @netway-devops-labs/backend @netway-devops-labs/frontend
-*.html *.css *.scss *.img @netway-devops-labs/ui
+*.html @netway-devops-labs/ui
+*.css @netway-devops-labs/ui
+*.scss @netway-devops-labs/ui
+*.img @netway-devops-labs/ui
